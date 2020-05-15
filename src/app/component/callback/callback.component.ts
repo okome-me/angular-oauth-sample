@@ -42,10 +42,22 @@ export class CallbackComponent implements OnInit {
               private tokenService: TokenService) { }
 
   async ngOnInit() {
-    // 認可コード取得
+
+    // 認可コード,state取得
+    let callbackState;
     await this.route.queryParamMap.subscribe( param => {
       this.code = param.get('code');
+      callbackState = param.get('state');
     });
+
+    // state検証
+    const issuedState = sessionStorage.getItem('state');
+    sessionStorage.removeItem('state');
+    if (callbackState !== issuedState) {
+      alert('state検証に失敗しました');
+      await this.router.navigate(['/home']);
+      return;
+    }
 
     // アクセストークン取得
     await this.getAccessToken();
@@ -69,6 +81,7 @@ export class CallbackComponent implements OnInit {
       code: this.code,
       redirect_uri: environment.auth.redirectUri,
     };
+    sessionStorage.removeItem('code_verifier');
 
     return new Promise( (resolve, reject) => {
       this.http.post<TokenEndPointResponse>(environment.auth.tokenUri, body, options).subscribe( async data => {
